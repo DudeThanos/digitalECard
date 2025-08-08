@@ -1,0 +1,35 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Century Gothic Regular', 'Century Gothic', regular;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #ffffff;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Global text color override */
+* {
+  color: #121111;
+}
+
+/* Override for specific elements that should have different colors */
+.MuiPaper-root,
+.MuiCard-root,
+.MuiDialog-paper,
+.MuiAlert-root {
+  color: #000000 !important;
+}
+
+.MuiPaper-root *,
+.MuiCard-root *,
+.MuiDialog-paper *,
+.MuiAlert-root * {
+  color: inherit !important;
+}

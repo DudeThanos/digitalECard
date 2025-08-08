@@ -1,0 +1,2 @@
+employee_code,name,email,phone,photo_url,password,role,department,designation,company,address,status
+hr-emp-0002,Bob Jones,bob@example.com,9876543210,,password123,user,IT,Developer,Kaynes Branch 2,"456 Main St",active

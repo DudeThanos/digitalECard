@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "csv-parse": "^6.1.0",
+    "csv-writer": "^1.6.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.5",
+    "pg": "^8.16.3",
+    "qrcode": "^1.5.4",
+    "react-qr-code": "^2.0.18",
+    "speakeasy": "^2.0.0"
+  }
+}

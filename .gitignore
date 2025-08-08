@@ -1,0 +1,15 @@
+node_modules/
+.env
+.vscode/
+*.log
+.DS_Store
+Thumbs.db
+DEPLOYMENT-QUICK-START.md 
+bcrypt.js
+chat-pot.md
+deploy-local.sh
+deploy-global.sh
+pord-fix.md
+production-setup.md
+scroll.md
+test.csv

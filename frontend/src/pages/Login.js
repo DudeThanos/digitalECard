@@ -40,7 +40,7 @@ const Login = ({ onLogin }) => {
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (token && user) {
-      if (user.role === 'admin') {
+      if (user.role === 'admin' || user.role === 'superuser') {
         navigate('/dashboard');
       } else if (user.employee_code) {
         navigate(`/card/${user.employee_code}`);

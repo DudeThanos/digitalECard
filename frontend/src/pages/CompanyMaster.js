@@ -27,7 +27,7 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import useViewport from '../hooks/useViewport';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = '/api';
 
 const CompanyMaster = () => {
   const [companies, setCompanies] = useState([]);
@@ -173,7 +173,7 @@ const CompanyMaster = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           {company.logo_url ? (
             <img 
-              src={`http://localhost:5000${company.logo_url}`} 
+                                src={`${company.logo_url}`} 
               alt="Company Logo" 
               style={{ 
                 width: 60, 
@@ -314,7 +314,7 @@ const CompanyMaster = () => {
                   <TableCell>
                     {company.logo_url ? (
                       <img 
-                        src={`http://localhost:5000${company.logo_url}`} 
+                        src={`${company.logo_url}`} 
                         alt="Company Logo" 
                         style={{ width: 50, height: 50, objectFit: 'contain' }}
                       />

@@ -54,17 +54,26 @@ exports.createCard = async (req, res) => {
     }
 
     const password_hash = await bcrypt.hash(password, 10);
+    
+    // Role restriction: Only superuser can create admin accounts
+    let finalRole = role || 'user';
+    if (req.user.role !== 'superuser' && finalRole === 'admin') {
+      finalRole = 'user'; // Force to user if admin tries to create admin account
+      console.log(`Admin creation blocked by ${req.user.role} user. Role changed from 'admin' to 'user' for ${employee_code}`);
+    }
+    
     let totp_secret = null;
     let otpauth_url = null;
-    if ((role || 'user') === 'admin') {
+    if (finalRole === 'admin') {
       const secret = require('speakeasy').generateSecret({ name: `Kaynes Digital Card (${email})` });
       totp_secret = secret.base32;
       otpauth_url = secret.otpauth_url;
     }
+    
     const result = await pool.query(
       `INSERT INTO users (employee_code, name, first_name, last_name, email, phone, photo_url, password_hash, role, department, designation, company, branch, address, status, must_change_password, totp_secret)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,TRUE,$16) RETURNING id, employee_code, name, first_name, last_name, email, role, must_change_password, totp_secret` ,
-      [employee_code, fullName, firstName, lastName, email, phone, photo_url, password_hash, role || 'user', department, designation, company, branch, address, status || 'active', totp_secret]
+      [employee_code, fullName, firstName, lastName, email, phone, photo_url, password_hash, finalRole, department, designation, company, branch, address, status || 'active', totp_secret]
     );
     const user = result.rows[0];
     // Audit log if admin created

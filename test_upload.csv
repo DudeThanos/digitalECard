@@ -1,0 +1,3 @@
+employee_code,first_name,last_name,name,email,phone,photo_url,password,role,department,designation,company,branch,address,status
+HR-EMP-00015,Eane,Smith,Rane Smith,eane@example.com,9876543210,,password456,admin,HR,Manager,Kaynes Branch 2,Kolkata,"456 Oak Ave",active
+EX-THP-00016,Eob,Johnson,Bob Johnson,eob@example.com,5551234567,,password789,user,Finance,Accountant,Kaynes Branch 3,Coimbatore,"789 Pine Rd",active

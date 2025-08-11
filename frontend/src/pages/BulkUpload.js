@@ -47,13 +47,14 @@ const BulkUpload = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post('http://localhost:5000/api/csv/upload', formData, {
+      const res = await axios.post('/api/csv/upload', formData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
         }
       });
-      setSuccess(`Upload completed! Created: ${res.data.created}, Failed: ${res.data.failed}`);
+      const failedCount = Array.isArray(res.data.failed) ? res.data.failed.length : 0;
+      setSuccess(`Upload completed! Created: ${res.data.created}, Failed: ${failedCount}`);
       setResults(res.data);
       setFile(null);
     } catch (err) {

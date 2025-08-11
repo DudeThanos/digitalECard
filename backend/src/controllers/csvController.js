@@ -105,7 +105,7 @@ async function sendBackupEmail(to, filePath) {
             </ul>
           </div>
           <p style="color: #666; font-size: 12px;">
-            This is an automated notification from the Kaynes Digital Card system.
+            This is an automated notification from the Kaynes Digital Card.
           </p>
         </div>
       `,
@@ -188,10 +188,17 @@ exports.uploadCSV = async (req, res) => {
         fullName = `${firstName} ${lastName}`.trim();
       }
       
+      // Role restriction: Only superuser can create admin accounts
+      let finalRole = record.role || 'user';
+      if (req.user.role !== 'superuser' && finalRole === 'admin') {
+        finalRole = 'user'; // Force to user if admin tries to create admin account
+        console.log(`Admin creation blocked by ${req.user.role} user. Role changed from 'admin' to 'user' for ${record.employee_code}`);
+      }
+      
       await pool.query(
-        `INSERT INTO users (employee_code, name, first_name, last_name, email, phone, photo_url, password_hash, role, department, designation, company, address, status, must_change_password)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,TRUE)` ,
-        [record.employee_code, fullName, firstName, lastName, record.email, record.phone, record.photo_url, password_hash, record.role || 'user', record.department, record.designation, record.company, record.address, record.status || 'active']
+        `INSERT INTO users (employee_code, name, first_name, last_name, email, phone, photo_url, password_hash, role, department, designation, company, branch, address, status, must_change_password)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,TRUE)` ,
+        [record.employee_code, fullName, firstName, lastName, record.email, record.phone, record.photo_url, password_hash, finalRole, record.department, record.designation, record.company, record.branch, record.address, record.status || 'active']
       );
       results.push({ employee_code: record.employee_code, email: record.email });
     } catch (err) {

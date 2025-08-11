@@ -31,7 +31,7 @@ const AdminDeleteCard = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get(`http://localhost:5000/api/card/${searchCode}`);
+      const res = await axios.get(`/api/card/${searchCode}`);
       setCard(res.data.card);
       setSuccess('');
     } catch (err) {
@@ -82,7 +82,7 @@ const AdminDeleteCard = () => {
     
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/card/${searchCode}`, {
+              await axios.delete(`/api/card/${searchCode}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setSuccess('Card deleted successfully!');

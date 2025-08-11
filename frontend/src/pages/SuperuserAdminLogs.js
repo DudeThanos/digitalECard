@@ -16,7 +16,7 @@ const columns = [
   {
     field: 'details',
     headerName: 'Details',
-    width: 300,
+    width: 200,
     flex: 1,
     renderCell: (params) => {
       let employeeCode = '';

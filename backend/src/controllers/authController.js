@@ -7,7 +7,12 @@ const fs = require('fs');
 const SUPERUSER_USERNAME = process.env.SUPERUSER_USERNAME;
 const SUPERUSER_PASSWORD_HASH = process.env.SUPERUSER_PASSWORD_HASH;
 const SUPERUSER_TOTP_SECRET = process.env.SUPERUSER_TOTP_SECRET;
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
+// Ensure JWT_SECRET is set
+if (!process.env.JWT_SECRET) {
+  console.error('ERROR: JWT_SECRET environment variable is not set!');
+  process.exit(1);
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 const SU_AUDIT_LOG = process.env.SU_AUDIT_LOG || 'su_audit.log';
 
 // System configuration file to track superuser TOTP setup
@@ -98,7 +103,7 @@ exports.register = async (req, res) => {
     let permissions = {};
     if (role === 'admin') {
       permissions = {
-        backup_settings: true,
+        backup_settings: false, // Restricted - only superuser can grant this
         bulk_upload: true,
         single_card: true,
         view_all_cards: true,
@@ -109,14 +114,37 @@ exports.register = async (req, res) => {
       };
     }
     
+    // Handle name fields properly
+    let firstName = '';
+    let lastName = '';
+    
+    if (name && name.trim().includes(' ')) {
+      const parts = name.trim().split(' ');
+      firstName = parts[0];
+      lastName = parts.slice(1).join(' ');
+    } else {
+      firstName = name || '';
+      lastName = '';
+    }
+    
     // Remove TOTP setup for regular users - only superuser gets TOTP
     const result = await pool.query(
       `INSERT INTO users (employee_code, name, first_name, last_name, email, phone, photo_url, password_hash, role, department, designation, company, address, status, must_change_password, permissions)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,TRUE,$15)` ,
-      [employee_code, name, email, phone, photo_url, password_hash, role || 'user', department, designation, company, address, status || 'active', JSON.stringify(permissions)]
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, TRUE, $15) RETURNING *`,
+      [employee_code, name, firstName, lastName, email, phone || null, photo_url || null, password_hash, role || 'user', department || null, designation || null, company || null, address || null, status || 'active', JSON.stringify(permissions)]
     );
+    
     const user = result.rows[0];
-    return res.status(201).json({ user });
+    return res.status(201).json({ 
+      message: 'User registered successfully',
+      user: {
+        id: user.id,
+        employee_code: user.employee_code,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -419,5 +447,74 @@ exports.clearAdminAuditLog = async (req, res) => {
     res.json({ message: 'Admin audit log cleared.' });
   } catch (err) {
     res.status(500).json({ message: 'Could not clear admin audit log' });
+  }
+}; 
+
+// Superuser only: Change user role (user to admin)
+exports.changeUserRole = async (req, res) => {
+  try {
+    // Only superuser can change roles
+    if (req.user.role !== 'superuser') {
+      return res.status(403).json({ message: 'Forbidden: Only superuser can change user roles' });
+    }
+
+    const { employee_code, new_role } = req.body;
+    
+    if (!employee_code || !new_role) {
+      return res.status(400).json({ message: 'Employee code and new role are required' });
+    }
+
+    if (!['user', 'admin'].includes(new_role)) {
+      return res.status(400).json({ message: 'Invalid role. Must be "user" or "admin"' });
+    }
+
+    // Check if user exists
+    const userResult = await pool.query('SELECT id, role, email FROM users WHERE employee_code = $1', [employee_code]);
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const user = userResult.rows[0];
+    
+    // If promoting to admin, set default admin permissions
+    let permissions = user.permissions || {};
+    if (new_role === 'admin') {
+      permissions = {
+        backup_settings: false, // Restricted - only superuser can grant this
+        bulk_upload: true,
+        single_card: true,
+        view_all_cards: true,
+        edit_any_card: true,
+        delete_any_card: true,
+        company_master: true,
+        reset_user_password: true
+      };
+    } else if (new_role === 'user') {
+      // Remove admin permissions when demoting to user
+      permissions = {};
+    }
+
+    // Update user role and permissions
+    await pool.query(
+      'UPDATE users SET role = $1, permissions = $2, updated_at = CURRENT_TIMESTAMP WHERE employee_code = $3',
+      [new_role, JSON.stringify(permissions), employee_code]
+    );
+
+    // Log the role change
+    logSuperuserAction('ROLE_CHANGE', { 
+      target_employee_code: employee_code, 
+      target_email: user.email,
+      old_role: user.role, 
+      new_role: new_role 
+    }, req);
+
+    res.json({ 
+      message: `User role changed successfully from ${user.role} to ${new_role}`,
+      user: { employee_code, email: user.email, role: new_role }
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
   }
 }; 

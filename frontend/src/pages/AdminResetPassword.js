@@ -26,7 +26,7 @@ const AdminResetPassword = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5000/api/card/${empCode}`, {
+      const res = await axios.get(`/api/card/${empCode}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUserDetails(res.data.card);
@@ -45,7 +45,7 @@ const AdminResetPassword = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        `http://localhost:5000/api/card/${empCode}/admin-reset-password`,
+        `/api/card/${empCode}/admin-reset-password`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

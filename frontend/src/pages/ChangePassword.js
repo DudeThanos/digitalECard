@@ -34,7 +34,7 @@ const ChangePassword = () => {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       const token = localStorage.getItem('token');
       await axios.post(
-        `http://localhost:5000/api/card/${user.employee_code}/change-password`,
+        `/api/card/${user.employee_code}/change-password`,
         { old_password: oldPassword, new_password: newPassword },
         { headers: { Authorization: `Bearer ${token}` } }
       );

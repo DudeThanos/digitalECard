@@ -1,11 +1,19 @@
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const authController = require('../controllers/authController');
 const auth = require('../middlewares/auth');
+const validation = require('../middlewares/validation');
 const pool = require('../utils/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
+
+// Ensure JWT_SECRET is set
+if (!process.env.JWT_SECRET) {
+  console.error('ERROR: JWT_SECRET environment variable is not set!');
+  process.exit(1);
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Helper function to migrate old permissions to new structure
 function migratePermissions(oldPermissions) {
@@ -40,18 +48,45 @@ function migratePermissions(oldPermissions) {
   return newPermissions;
 }
 
-router.post('/register', authController.register);
-router.post('/login', authController.login);
+// Strict rate limiting for login to prevent brute force attacks
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3, // limit each IP to 3 login attempts per windowMs
+  message: 'Too many login attempts, please try again in 15 minutes.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true, // Don't count successful logins
+  handler: (req, res) => {
+    res.status(429).json({
+      message: 'Too many login attempts, please try again in 15 minutes.',
+      retryAfter: Math.ceil(15 * 60 / 1000) // 15 minutes in seconds
+    });
+  }
+});
+
+router.post('/register', validation.registerValidation, authController.register);
+router.post('/login', loginLimiter, validation.loginValidation, authController.login);
 router.get('/su/admins', auth, authController.listAdmins);
-router.post('/su/admins/permissions', auth, authController.updateAdminPermissions);
+router.post('/su/admins/permissions', auth, validation.adminPermissionsValidation, authController.updateAdminPermissions);
+router.post('/su/change-role', auth, validation.changeRoleValidation, authController.changeUserRole);
 router.get('/su/audit-log', auth, authController.getSUAuditLog);
-router.post('/verify-totp', authController.verifyTotp);
-router.post('/complete-totp-setup', authController.completeTotpSetup);
+// Rate limiting for TOTP verification
+const totpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 TOTP attempts per windowMs
+  message: 'Too many TOTP verification attempts, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true
+});
+
+router.post('/verify-totp', totpLimiter, validation.totpValidation, authController.verifyTotp);
+router.post('/complete-totp-setup', totpLimiter, validation.completeTotpSetupValidation, authController.completeTotpSetup);
 router.get('/system-config', auth, authController.getSystemConfig);
 router.get('/su/admin-logs', auth, authController.getAdminAuditLogs);
 router.delete('/su/audit-log', auth, authController.clearSUAuditLog);
 router.delete('/su/admin-logs', auth, authController.clearAdminAuditLog);
-router.post('/su/reset-db', auth, async (req, res) => {
+router.post('/su/reset-db', auth, validation.superuserValidation, async (req, res) => {
   // Only allow superuser
   if (!req.user || req.user.role !== 'superuser') {
     return res.status(403).json({ message: 'Forbidden: Superuser only' });

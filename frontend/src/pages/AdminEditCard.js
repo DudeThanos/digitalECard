@@ -30,7 +30,7 @@ const AdminEditCard = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get(`http://localhost:5000/api/card/${searchCode}`);
+      const res = await axios.get(`/api/card/${searchCode}`);
       setCard(res.data.card);
       setForm(res.data.card);
       setSuccess('');
@@ -66,12 +66,12 @@ const AdminEditCard = () => {
     
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/card/${searchCode}/update`, form, {
+      await axios.put(`/api/card/${searchCode}/update`, form, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setSuccess('Card updated successfully!');
       // Refresh card data
-      const res = await axios.get(`http://localhost:5000/api/card/${searchCode}`);
+      const res = await axios.get(`/api/card/${searchCode}`);
       setCard(res.data.card);
       setForm(res.data.card);
     } catch (err) {

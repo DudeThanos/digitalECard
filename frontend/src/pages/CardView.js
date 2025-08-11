@@ -18,7 +18,7 @@ import Snackbar from '@mui/material/Snackbar';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import AddToHomeScreenIcon from '@mui/icons-material/AddToHomeScreen';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = '/api';
 
 // Add print styles to the document head
 const addPrintStyles = () => {
@@ -449,7 +449,7 @@ const CardView = () => {
               mb: 3
             }}>
               <img 
-                src={card.company_logo ? `http://localhost:5000${card.company_logo}` : '/logo.svg'}
+                src={card.company_logo ? `${card.company_logo}` : '/logo.svg'}
                 alt="Company Logo"
                 style={{ 
                   width: '300px', 
@@ -485,7 +485,7 @@ const CardView = () => {
                 <Avatar
                   src={photoFile ? URL.createObjectURL(photoFile) : 
                         (card.photo_url && card.photo_url.startsWith('/') 
-                          ? `http://localhost:5000${card.photo_url}` 
+                          ? `${card.photo_url}` 
                           : card.photo_url)} 
                   sx={{ 
                     width: 117, 
@@ -702,7 +702,7 @@ const CardView = () => {
                   alignItems: 'flex-start'
                 }}>
                   <img 
-                    src={card.company_logo ? `http://localhost:5000${card.company_logo}` : '/logo.svg'}
+                    src={card.company_logo ? `${card.company_logo}` : '/logo.svg'}
                     alt="Company Logo"
                     style={{ 
                       width: '207px', 
@@ -733,7 +733,7 @@ const CardView = () => {
                   <Avatar
                     src={photoFile ? URL.createObjectURL(photoFile) : 
                           (card.photo_url && card.photo_url.startsWith('/') 
-                            ? `http://localhost:5000${card.photo_url}` 
+                            ? `${card.photo_url}` 
                             : card.photo_url)} 
                     sx={{ 
                       width: 88, 
@@ -971,7 +971,7 @@ const CardView = () => {
                       <Avatar 
                         src={photoFile ? URL.createObjectURL(photoFile) : 
                               (card.photo_url && card.photo_url.startsWith('/') 
-                                ? `http://localhost:5000${card.photo_url}` 
+                                ? `${card.photo_url}` 
                                 : card.photo_url)} 
                         sx={{ 
                           width: 80, 

@@ -80,7 +80,7 @@ const ViewAllCards = () => {
   const fetchCards = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5000/api/card/cards', {
+      const res = await axios.get('/api/card/cards', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setCards(res.data.cards);
@@ -172,7 +172,7 @@ const ViewAllCards = () => {
   const handleEditSave = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/card/${editDialog.card.employee_code}/update`, editDialog.form, {
+              await axios.put(`/api/card/${editDialog.card.employee_code}/update`, editDialog.form, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setEditDialog({ open: false, card: null, form: {} });
@@ -192,7 +192,7 @@ const ViewAllCards = () => {
   const deleteCard = async (employeeCode) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/card/${employeeCode}`, {
+              await axios.delete(`/api/card/${employeeCode}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setCards(cards.filter(card => card.employee_code !== employeeCode));

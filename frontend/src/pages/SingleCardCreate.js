@@ -49,6 +49,14 @@ const SingleCardCreate = () => {
   const [copySuccess, setCopySuccess] = useState(false);
 
   useEffect(() => {
+    // Set role based on user permissions
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    if (currentUser.role !== 'superuser') {
+      setForm(f => ({ ...f, role: 'user' }));
+    }
+  }, []);
+
+  useEffect(() => {
     axios.get('/api/card/last-employee-codes')
       .then(res => {
         setLastCodes(res.data);
@@ -255,13 +263,32 @@ const SingleCardCreate = () => {
               fullWidth
               required
             />
-            <FormControl fullWidth>
-              <InputLabel>Role</InputLabel>
-              <Select name="role" value={form.role} onChange={handleChange}>
-                <MenuItem value="user">User</MenuItem>
-                <MenuItem value="admin">Admin</MenuItem>
-              </Select>
-            </FormControl>
+            {/* Role field - only show for superuser */}
+            {(() => {
+              const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+              if (currentUser.role === 'superuser') {
+                return (
+                  <FormControl fullWidth>
+                    <InputLabel>Role</InputLabel>
+                    <Select name="role" value={form.role} onChange={handleChange}>
+                      <MenuItem value="user">User</MenuItem>
+                      <MenuItem value="admin">Admin</MenuItem>
+                    </Select>
+                  </FormControl>
+                );
+              } else {
+                // For non-superusers, force role to 'user' and hide the field
+                return (
+                  <TextField
+                    label="Role"
+                    value="User"
+                    disabled
+                    fullWidth
+                    helperText="Only superuser can create admin accounts"
+                  />
+                );
+              }
+            })()}
           </Box>
           
           {/* Right Column */}

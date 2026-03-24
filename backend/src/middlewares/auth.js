@@ -23,6 +23,7 @@ module.exports = function (req, res, next) {
               id: user.id, 
               role: user.role, 
               employee_code: user.employee_code, 
+              name: user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.employee_code,
               must_change_password: user.must_change_password,
               permissions: user.permissions || {}
             }, JWT_SECRET, { expiresIn: '7d' });
@@ -33,6 +34,7 @@ module.exports = function (req, res, next) {
               id: user.id, 
               role: user.role, 
               employee_code: user.employee_code, 
+              name: user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.employee_code,
               must_change_password: user.must_change_password,
               permissions: user.permissions || {}
             };

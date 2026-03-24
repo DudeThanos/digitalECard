@@ -140,7 +140,7 @@ exports.register = async (req, res) => {
       user: {
         id: user.id,
         employee_code: user.employee_code,
-        name: user.name,
+        name: user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.employee_code,
         email: user.email,
         role: user.role
       }
@@ -218,6 +218,7 @@ exports.login = async (req, res) => {
       id: user.id, 
       role: user.role, 
       employee_code: user.employee_code, 
+      name: user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.employee_code,
       must_change_password: user.must_change_password,
       permissions: permissions
     }, JWT_SECRET, { expiresIn: '7d' });
@@ -227,7 +228,7 @@ exports.login = async (req, res) => {
       user: { 
         id: user.id, 
         employee_code: user.employee_code, 
-        name: user.name, 
+        name: user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.employee_code, 
         email: user.email, 
         role: user.role, 
         must_change_password: user.must_change_password,
@@ -374,22 +375,41 @@ exports.listAdmins   = async (req, res) => {
 
 // Update admin permissions (SU only, granular features)
 exports.updateAdminPermissions = async (req, res) => {
-  if (!req.user || req.user.role !== 'superuser') {
-    return res.status(403).json({ message: 'Forbidden: Superuser only' });
+  try {
+    if (!req.user || req.user.role !== 'superuser') {
+      return res.status(403).json({ message: 'Forbidden: Superuser only' });
+    }
+    
+    const { admin_id, permissions } = req.body;
+    if (!admin_id || !permissions) {
+      return res.status(400).json({ message: 'admin_id and permissions required' });
+    }
+
+    // First check if the admin exists
+    const adminCheck = await pool.query('SELECT id FROM users WHERE id = $1 AND role = $2', [admin_id, 'admin']);
+    if (adminCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Admin user not found' });
+    }
+
+    // Update the permissions
+    const result = await pool.query('UPDATE users SET permissions = $1 WHERE id = $2 AND role = $3', [permissions, admin_id, 'admin']);
+    
+    if (result.rowCount === 0) {
+      return res.status(400).json({ message: 'Failed to update permissions' });
+    }
+
+    // Log the permission update
+    logSuperuserAction('UPDATE_ADMIN_PERMISSIONS', { 
+      admin_id, 
+      permissions,
+      updated_by: req.user.username || 'superuser'
+    }, req);
+    
+    res.json({ message: 'Permissions updated successfully' });
+  } catch (error) {
+    console.error('Error updating admin permissions:', error);
+    res.status(500).json({ message: 'Internal server error while updating permissions' });
   }
-  const { admin_id, permissions } = req.body;
-  if (!admin_id || !permissions) {
-    return res.status(400).json({ message: 'admin_id and permissions required' });
-  }
-  await pool.query('UPDATE users SET permissions = $1 WHERE id = $2 AND role = $3', [permissions, admin_id, 'admin']);
-  
-  // Log the permission update
-  logSuperuserAction('UPDATE_ADMIN_PERMISSIONS', { 
-    admin_id, 
-    permissions,
-    updated_by: req.user.username || 'superuser'
-  }, req);
-  res.json({ message: 'Permissions updated' });
 };
 
 // View SU audit log (SU only)

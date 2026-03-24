@@ -17,6 +17,7 @@ import ShareIcon from '@mui/icons-material/Share';
 import Snackbar from '@mui/material/Snackbar';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import AddToHomeScreenIcon from '@mui/icons-material/AddToHomeScreen';
+import pwaService from '../services/pwaService';
 
 const API_BASE = '/api';
 
@@ -260,34 +261,84 @@ const CardView = () => {
   };
 
   const handleShare = async () => {
-    const url = window.location.origin + `/card/${card.employee_code}`;
+    // Use current URL directly - no need to reconstruct
+    const currentUrl = window.location.href;
     if (navigator.share && /Mobi|Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent)) {
       // Mobile: Use Web Share API if available
       try {
         await navigator.share({
           title: `${card.name} - Kaynes Digital Card`,
           text: `View the digital card for ${card.name}`,
-          url,
+          url: currentUrl,
         });
         setShareMsg('Shared!');
       } catch {
         setShareMsg('Share cancelled.');
       }
     } else {
-      // Desktop or fallback: Copy to clipboard
+      // Desktop or fallback: Copy to clipboard with multiple fallback methods
       try {
-        await navigator.clipboard.writeText(url);
-        setShareMsg('Link copied!');
-      } catch {
-        setShareMsg('Failed to copy link.');
+        // Try modern clipboard API first
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(currentUrl);
+          setShareMsg('Link copied!');
+        } else {
+          // Fallback to document.execCommand for older browsers
+          const textArea = document.createElement('textarea');
+          textArea.value = currentUrl;
+          textArea.style.position = 'fixed';
+          textArea.style.left = '-999999px';
+          textArea.style.top = '-999999px';
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          
+          const successful = document.execCommand('copy');
+          document.body.removeChild(textArea);
+          
+          if (successful) {
+            setShareMsg('Link copied!');
+          } else {
+            // Last resort: show URL in alert for manual copy
+            alert(`Please copy this URL manually:\n\n${currentUrl}`);
+            setShareMsg('URL shown in alert');
+          }
+        }
+      } catch (error) {
+        console.error('Clipboard copy failed:', error);
+        // Last resort: show URL in alert for manual copy
+        alert(`Please copy this URL manually:\n\n${currentUrl}`);
+        setShareMsg('URL shown in alert');
       }
     }
     setShareOpen(true);
   };
 
-  const handleSaveToHome = () => {
-    // Save card data to localStorage (already done on fetch)
-    setShowSavedMsg(true);
+  const handleSaveToHome = async () => {
+    if (!card) return;
+    
+    try {
+      const result = await pwaService.handleSaveToHome(card);
+      setShowSavedMsg(true);
+      
+      // Show appropriate message based on result
+      if (result.success) {
+        setShareMsg(result.message);
+        
+        // If install dialog is shown, show success message
+        if (result.showInstallDialog) {
+          setShareMsg('📱 Install dialog opened! Click "Install Now" to add to home screen.');
+          setShareOpen(true);
+        }
+      } else {
+        setShareMsg(result.message);
+      }
+      setShareOpen(true);
+    } catch (error) {
+      console.error('Save to home failed:', error);
+      setShareMsg('Failed to save card');
+      setShareOpen(true);
+    }
   };
 
   const handleRefresh = () => {

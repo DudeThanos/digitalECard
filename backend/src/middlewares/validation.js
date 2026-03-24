@@ -424,9 +424,9 @@ const superuserValidation = [
 ];
 
 const adminPermissionsValidation = [
-  body('userId')
+  body('admin_id')
     .isInt({ min: 1 })
-    .withMessage('User ID must be a positive integer'),
+    .withMessage('Admin ID must be a positive integer'),
   
   body('permissions')
     .isObject()

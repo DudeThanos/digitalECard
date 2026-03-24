@@ -31,7 +31,7 @@ const EnterTotp = ({ onLogin }) => {
       setUserType(location.state.userType);
     } else {
       // If no user type, redirect back to login
-      navigate('/login');
+      navigate('/');
     }
   }, [location.state, navigate]);
 
@@ -77,7 +77,7 @@ const EnterTotp = ({ onLogin }) => {
   };
 
   const handleBackToLogin = () => {
-    navigate('/login');
+    navigate('/');
   };
 
   if (!userType) {

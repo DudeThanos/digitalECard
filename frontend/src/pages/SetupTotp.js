@@ -33,7 +33,7 @@ const SetupTotp = ({ onLogin }) => {
       setQrData(location.state.totp);
     } else {
       // If no QR data, redirect back to login
-      navigate('/login');
+      navigate('/');
     }
   }, [location.state, navigate]);
 

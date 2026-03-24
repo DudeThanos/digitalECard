@@ -154,9 +154,43 @@ const SingleCardCreate = () => {
     }
   };
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     const text = `Username: ${createdUser.username}\nPassword: ${createdUser.password}\nEmployee Code: ${createdUser.employee_code}`;
-    navigator.clipboard.writeText(text).then(() => setCopySuccess(true));
+    
+    try {
+      // Try modern clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        setCopySuccess(true);
+      } else {
+        // Fallback to document.execCommand for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        if (successful) {
+          setCopySuccess(true);
+        } else {
+          // Last resort: show credentials in alert for manual copy
+          alert(`Please copy these credentials manually:\n\n${text}`);
+          setCopySuccess(true);
+        }
+      }
+    } catch (error) {
+      console.error('Clipboard copy failed:', error);
+      // Last resort: show credentials in alert for manual copy
+      alert(`Please copy these credentials manually:\n\n${text}`);
+      setCopySuccess(true);
+    }
+    
     setTimeout(() => setCopySuccess(false), 1500);
   };
 

@@ -43,6 +43,7 @@ import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import PrintIcon from '@mui/icons-material/Print';
+import pwaService from './services/pwaService';
 
 // Custom theme with red accent, black, and white colors
 const theme = createTheme({
@@ -212,12 +213,39 @@ function NavigationBar({ isLoggedIn, onLogout }) {
         setShareMsg('Share cancelled.');
       }
     } else {
-      // Desktop or fallback: Copy to clipboard
+      // Desktop or fallback: Copy to clipboard with multiple fallback methods
       try {
-        await navigator.clipboard.writeText(cardLink);
-        setShareMsg('Link copied!');
-      } catch {
-        setShareMsg('Failed to copy link.');
+        // Try modern clipboard API first
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(cardLink);
+          setShareMsg('Link copied!');
+        } else {
+          // Fallback to document.execCommand for older browsers
+          const textArea = document.createElement('textarea');
+          textArea.value = cardLink;
+          textArea.style.position = 'fixed';
+          textArea.style.left = '-999999px';
+          textArea.style.top = '-999999px';
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          
+          const successful = document.execCommand('copy');
+          document.body.removeChild(textArea);
+          
+          if (successful) {
+            setShareMsg('Link copied!');
+          } else {
+            // Last resort: show URL in alert for manual copy
+            alert(`Please copy this URL manually:\n\n${cardLink}`);
+            setShareMsg('URL shown in alert');
+          }
+        }
+      } catch (error) {
+        console.error('Clipboard copy failed:', error);
+        // Last resort: show URL in alert for manual copy
+        alert(`Please copy this URL manually:\n\n${cardLink}`);
+        setShareMsg('URL shown in alert');
       }
     }
     setShareOpen(true);
@@ -233,24 +261,44 @@ function NavigationBar({ isLoggedIn, onLogout }) {
   const isMobile = /Mobi|Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent);
   const [showSavedMsg, setShowSavedMsg] = useState(false);
   // Save card to localStorage for offline access (mobile only)
-  const handleSaveToHome = () => {
+  const handleSaveToHome = async () => {
     if (isCardView && isMobile) {
-      // Try to get the card data from the CardView localStorage key
-      const code = window.location.pathname.split('/card/')[1];
-      // If CardView already saved, just show snackbar
-      if (localStorage.getItem(`offline_card_${code}`)) {
-        setShowSavedMsg(true);
-        return;
-      }
-      // Otherwise, try to fetch and save
-      fetch(`/api/card/${code}`)
-        .then(res => res.json())
-        .then(data => {
+      try {
+        // Get card data from localStorage or fetch if not available
+        const code = window.location.pathname.split('/card/')[1];
+        let cardData = pwaService.getCardData(code);
+        
+        if (!cardData) {
+          // Fetch card data if not in localStorage
+          const response = await fetch(`/api/card/${code}`);
+          const data = await response.json();
           if (data.card) {
-            localStorage.setItem(`offline_card_${code}`, JSON.stringify(data.card));
-            setShowSavedMsg(true);
+            cardData = data.card;
           }
-        });
+        }
+        
+        if (cardData) {
+          const result = await pwaService.handleSaveToHome(cardData);
+          setShowSavedMsg(true);
+          
+          // Show appropriate message
+          if (result.success) {
+            setShareMsg(result.message);
+            
+            // If install dialog is shown, show success message
+            if (result.showInstallDialog) {
+              setShareMsg('📱 Install dialog opened! Click "Install Now" to add to home screen.');
+            }
+          } else {
+            setShareMsg(result.message);
+          }
+          setShareOpen(true);
+        }
+      } catch (error) {
+        console.error('Save to home failed:', error);
+        setShareMsg('Failed to save card');
+        setShareOpen(true);
+      }
     }
   };
 
@@ -298,7 +346,7 @@ function NavigationBar({ isLoggedIn, onLogout }) {
             onError={(e) => {
               e.target.style.display = 'none';
             }}
-            onClick={() => window.location.reload()}
+            onClick={() => navigate('/dashboard')}
           />
         </Box>
         
@@ -409,40 +457,40 @@ function NavigationBar({ isLoggedIn, onLogout }) {
                 >
                   <List sx={{ width: 220, pt: 2 }}>
                     {isCreateThrowaway && (
-                      <ListItem button onClick={() => { setDrawerOpen(false); handleMyCard(); }}>
+                      <ListItem onClick={() => { setDrawerOpen(false); handleMyCard(); }}>
                         <ListItemIcon><ContactPageIcon /></ListItemIcon>
                         <ListItemText primary="My Card" />
                       </ListItem>
                     )}
-                    <ListItem button onClick={() => { setDrawerOpen(false); handleCreate(); }}>
+                    <ListItem onClick={() => { setDrawerOpen(false); handleCreate(); }}>
                       <ListItemIcon><AddIcon /></ListItemIcon>
                       <ListItemText primary="Create" />
                     </ListItem>
                     {isCardView && (
-                      <ListItem button onClick={() => { setDrawerOpen(false); handleShare(); }}>
+                      <ListItem onClick={() => { setDrawerOpen(false); handleShare(); }}>
                         <ListItemIcon><ShareIcon /></ListItemIcon>
                         <ListItemText primary="Share" />
                       </ListItem>
                     )}
                     {isCardView && (
-                      <ListItem button onClick={() => { setDrawerOpen(false); handleSaveToHome(); }}>
+                      <ListItem onClick={() => { setDrawerOpen(false); handleSaveToHome(); }}>
                         <ListItemIcon><AddToHomeScreenIcon /></ListItemIcon>
                         <ListItemText primary="Save to Home" />
                       </ListItem>
                     )}
                     {isCardView && isAdmin && (
-                      <ListItem button onClick={() => { setDrawerOpen(false); handlePrint(); }}>
+                      <ListItem onClick={() => { setDrawerOpen(false); handlePrint(); }}>
                         <ListItemIcon><PrintIcon /></ListItemIcon>
                         <ListItemText primary="Print Card" />
                       </ListItem>
                     )}
                     {isAdmin && !isDashboard && (
-                      <ListItem button component={Link} to="/dashboard" onClick={() => setDrawerOpen(false)}>
+                      <ListItem component={Link} to="/dashboard" onClick={() => setDrawerOpen(false)}>
                         <ListItemIcon><DashboardIcon /></ListItemIcon>
                         <ListItemText primary="Dashboard" />
                       </ListItem>
                     )}
-                    <ListItem button onClick={() => { setDrawerOpen(false); handleLogout(); }}>
+                    <ListItem onClick={() => { setDrawerOpen(false); handleLogout(); }}>
                       <ListItemIcon><PowerSettingsNewIcon /></ListItemIcon>
                       <ListItemText primary="Logout" />
                     </ListItem>
@@ -640,6 +688,9 @@ function App() {
     setIsLoggedIn(!!token);
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     setMustChangePassword(!!user.must_change_password);
+    
+    // Boot PWA service on app startup
+    pwaService.boot();
   }, []);
 
   const handleLogout = () => {
